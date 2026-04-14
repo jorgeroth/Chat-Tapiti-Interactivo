@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tapití AR — Mockup de experiencia</title>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #060e08; font-family: system-ui, sans-serif; }
+    @keyframes pulse { 0%,100%{opacity:.6} 50%{opacity:1} }
+    @keyframes stickerGlow { 0%,100%{box-shadow:0 0 8px rgba(15,110,86,.5)} 50%{box-shadow:0 0 20px rgba(15,110,86,.95)} }
+    @keyframes slideUp { from{transform:translateY(16px);opacity:0} to{transform:translateY(0);opacity:1} }
+    @keyframes slideLeft { from{transform:translateX(16px);opacity:0} to{transform:translateX(0);opacity:1} }
+    @keyframes scanLine { 0%{top:8%} 100%{top:88%} }
+    @keyframes gridMove { from{background-position:0 0} to{background-position:0 24px} }
+    @keyframes popIn { 0%{transform:scale(0.3) translateY(20px);opacity:0} 70%{transform:scale(1.05) translateY(-3px)} 100%{transform:scale(1) translateY(0);opacity:1} }
+    @keyframes float { 0%,100%{transform:translateY(0px)} 50%{transform:translateY(-4px)} }
+    @keyframes cornerBlink { 0%,100%{opacity:.5} 50%{opacity:1} }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
+
+    const SCENARIOS = [
+      {
+        id: "promo",
+        label: "Con promo activa",
+        icon: "🟢",
+        storeName: "Chacomer",
+        storeType: "Hogar y tecnología",
+        hasSticker: true,
+        discount: "25%",
+        cuotas: "24",
+        tope: "Gs. 750.000",
+        reintegro: "Gs. 187.500",
+        card: "Visa Oro",
+        tapitMsg: "¡Hoy pintás aquí, Jorge! 🎉\n25% de reintegro con tu Visa Oro.\nHasta Gs. 750.000 de tope.",
+        mood: "happy",
+        accentColor: "#0f6e56",
+        frameColor: "rgba(15,110,86,.7)",
+      },
+      {
+        id: "nopromo",
+        label: "Sin promo hoy",
+        icon: "🟡",
+        storeName: "Librería El Lápiz",
+        storeType: "Librería",
+        hasSticker: false,
+        tapitMsg: "Acá hoy no hay descuento\ncon tu tarjeta Familiar.\nPero tengo una opción mejor 👇",
+        mood: "thinking",
+        redirect: "Librería Don Bosco",
+        redirectDist: "280m",
+        redirectDiscount: "10% reintegro",
+        accentColor: "#b87000",
+        frameColor: "rgba(184,112,0,.6)",
+      },
+      {
+        id: "redirect",
+        label: "Sin adherir",
+        icon: "📍",
+        storeName: "Minimarket sin alianza",
+        storeType: "Supermercado",
+        hasSticker: false,
+        tapitMsg: "Este local no está adherido\na Banco Familiar.\nA 3 cuadras hay Stock con 15% 👇",
+        mood: "guide",
+        redirect: "Supermercado Stock",
+        redirectDist: "320m",
+        redirectDiscount: "15% reintegro",
+        accentColor: "#185fa5",
+        frameColor: "rgba(24,95,165,.6)",
+      },
+    ];
+
+    // ── Tapití rabbit SVG ───────────────────────────────────────────────
+    function TapitiRabbit({ mood, visible, size }) {
+      const sz = size || 80;
+      const colors = {
+        happy:   { body: "#0f6e56", glow: "rgba(15,110,86,.35)" },
+        thinking:{ body: "#b87000", glow: "rgba(184,112,0,.3)" },
+        guide:   { body: "#185fa5", glow: "rgba(24,95,165,.3)" },
+      };
+      const c = colors[mood] || colors.happy;
+
+      return (
+        <div style={{
+          width: sz, flexShrink: 0,
+          opacity: visible ? 1 : 0,
+          transform: visible ? "scale(1) translateY(0)" : "scale(0.2) translateY(24px)",
+          transition: "all 0.55s cubic-bezier(0.34,1.56,0.64,1)",
+          filter: visible ? `drop-shadow(0 2px 12px ${c.glow})` : "none",
+          animation: visible ? "float 3s ease-in-out infinite" : "none",
+        }}>
+          <svg viewBox="0 0 100 125" width={sz} height={sz * 1.25}>
+            {/* Shadow */}
+            <ellipse cx="50" cy="120" rx="24" ry="5" fill={c.body} opacity=".2"/>
+            {/* Left ear */}
+            <ellipse cx="34" cy="21" rx="9" ry="21" fill="white" stroke={c.body} strokeWidth="2"/>
+            <ellipse cx="34" cy="21" rx="5" ry="15" fill="#ffd4d4"/>
+            {/* Right ear */}
+            <ellipse cx="66" cy="21" rx="9" ry="21" fill="white" stroke={c.body} strokeWidth="2"/>
+            <ellipse cx="66" cy="21" rx="5" ry="15" fill="#ffd4d4"/>
+            {/* Body */}
+            <ellipse cx="50" cy="85" rx="28" ry="30" fill="white" stroke={c.body} strokeWidth="2"/>
+            {/* Head */}
+            <circle cx="50" cy="56" r="23" fill="white" stroke={c.body} strokeWidth="2"/>
+            {/* Belly */}
+            <ellipse cx="50" cy="90" rx="15" ry="17" fill="#f2faf6"/>
+            {/* Familiar badge */}
+            <circle cx="50" cy="80" r="9" fill={c.body}/>
+            <text x="50" y="84" textAnchor="middle" fill="white" fontSize="9" fontWeight="bold">F</text>
+
+            {/* Happy eyes */}
+            {mood === "happy" && <>
+              <path d="M39 53 Q43 49 47 53" stroke={c.body} strokeWidth="2.5" fill="none" strokeLinecap="round"/>
+              <path d="M53 53 Q57 49 61 53" stroke={c.body} strokeWidth="2.5" fill="none" strokeLinecap="round"/>
+            </>}
+            {/* Thinking eyes */}
+            {mood === "thinking" && <>
+              <circle cx="42" cy="53" r="4" fill={c.body}/>
+              <circle cx="58" cy="53" r="4" fill={c.body}/>
+              <circle cx="43" cy="52" r="1.5" fill="white"/>
+              <circle cx="59" cy="52" r="1.5" fill="white"/>
+            </>}
+            {/* Guide eyes */}
+            {mood === "guide" && <>
+              <path d="M39 53 Q43 49 47 53" stroke={c.body} strokeWidth="2.5" fill="none" strokeLinecap="round"/>
+              <path d="M53 51 Q59 51 61 55" stroke={c.body} strokeWidth="2.5" fill="none" strokeLinecap="round"/>
+            </>}
+
+            {/* Nose */}
+            <ellipse cx="50" cy="60" rx="3" ry="2" fill="#ffaaaa"/>
+            {/* Mouth happy/guide */}
+            {(mood === "happy" || mood === "guide") &&
+              <path d="M44 64 Q50 69 56 64" stroke="#ffaaaa" strokeWidth="2" fill="none" strokeLinecap="round"/>}
+            {/* Mouth thinking */}
+            {mood === "thinking" &&
+              <path d="M44 65 Q50 64 56 65" stroke="#ffaaaa" strokeWidth="2" fill="none" strokeLinecap="round"/>}
+
+            {/* Paws */}
+            <ellipse cx="27" cy="95" rx="10" ry="7" fill="white" stroke={c.body} strokeWidth="1.5"/>
+            <ellipse cx="73" cy="95" rx="10" ry="7" fill="white" stroke={c.body} strokeWidth="1.5"/>
+            {/* Feet */}
+            <ellipse cx="38" cy="113" rx="13" ry="7" fill="white" stroke={c.body} strokeWidth="1.5"/>
+            <ellipse cx="62" cy="113" rx="13" ry="7" fill="white" stroke={c.body} strokeWidth="1.5"/>
+
+            {/* Guide arm pointing */}
+            {mood === "guide" &&
+              <path d="M73 88 L87 77" stroke={c.body} strokeWidth="3" strokeLinecap="round"/>}
+            {/* Thinking hand on chin */}
+            {mood === "thinking" &&
+              <path d="M27 86 L25 73" stroke={c.body} strokeWidth="3" strokeLinecap="round"/>}
+          </svg>
+        </div>
+      );
+    }
+
+    // ── Store facade background ─────────────────────────────────────────
+    function StoreFacade({ scenario }) {
+      const themes = {
+        promo:    { sky: "#0a1c10", wall: "#0d1f14", win: "#112818", sign: "#0a4a28", txt: "CHACOMER" },
+        nopromo:  { sky: "#1a1408", wall: "#1e180a", win: "#2a2008", sign: "#3a2a08", txt: "LIBRERÍA\nEL LÁPIZ" },
+        redirect: { sky: "#0c0c18", wall: "#101018", win: "#18182a", sign: "#202035", txt: "MINIMARKET" },
+      };
+      const t = themes[scenario.id];
+
+      return (
+        <div style={{ position:"absolute", inset:0, overflow:"hidden" }}>
+          {/* Sky gradient */}
+          <div style={{ position:"absolute", top:0, left:0, right:0, height:"28%",
+            background:`linear-gradient(180deg, ${t.sky} 0%, rgba(10,20,14,.8) 100%)` }}/>
+          {/* Stars */}
+          {[[12,8],[55,12],[78,6],[32,18],[90,10],[18,22]].map(([x,y],i)=>(
+            <div key={i} style={{ position:"absolute", left:`${x}%`, top:`${y}%`,
+              width:2, height:2, borderRadius:"50%", background:"rgba(255,255,255,.4)" }}/>
+          ))}
+          {/* Building base */}
+          <div style={{ position:"absolute", top:"18%", left:"3%", right:"3%", bottom:0,
+            background:t.wall, borderRadius:"8px 8px 0 0",
+            border:"1px solid rgba(255,255,255,.04)" }}>
+            {/* Sign */}
+            <div style={{ position:"absolute", top:-22, left:"8%", right:"8%", height:44,
+              background:t.sign, borderRadius:"4px 4px 0 0",
+              display:"flex", alignItems:"center", justifyContent:"center",
+              boxShadow:`0 0 20px ${t.sign}` }}>
+              <span style={{ color:"rgba(255,255,255,.65)", fontSize:10, fontWeight:700,
+                letterSpacing:2, textAlign:"center", whiteSpace:"pre-line", lineHeight:1.2 }}>
+                {t.txt}
+              </span>
+            </div>
+            {/* Windows row */}
+            <div style={{ display:"flex", gap:7, padding:"12px 10px 0", justifyContent:"center" }}>
+              {[0,1,2].map(i => (
+                <div key={i} style={{ flex:1, height:44, background:t.win,
+                  borderRadius:3, border:"1px solid rgba(255,255,255,.05)",
+                  position:"relative", overflow:"hidden" }}>
+                  <div style={{ position:"absolute", inset:0,
+                    background:"linear-gradient(135deg,rgba(255,255,255,.04) 0%,transparent 60%)" }}/>
+                  {/* Light inside */}
+                  <div style={{ position:"absolute", bottom:0, left:0, right:0, height:3,
+                    background:`linear-gradient(90deg, transparent, rgba(255,200,100,.06), transparent)` }}/>
+                </div>
+              ))}
+            </div>
+            {/* Store front glass */}
+            <div style={{ position:"absolute", bottom:0, left:"8%", right:"8%", height:"44%",
+              background:t.win, borderRadius:"4px 4px 0 0",
+              border:"1px solid rgba(255,255,255,.05)", borderBottom:"none",
+              display:"flex", alignItems:"center", justifyContent:"center" }}>
+              {/* Door */}
+              <div style={{ width:26, height:42, background:"rgba(0,0,0,.45)",
+                borderRadius:"4px 4px 0 0", border:"1px solid rgba(255,255,255,.07)",
+                position:"relative" }}>
+                <div style={{ position:"absolute", top:10, right:4, width:3, height:3,
+                  borderRadius:"50%", background:"rgba(255,255,255,.25)" }}/>
+              </div>
+              {/* Familiar sticker */}
+              {scenario.hasSticker && (
+                <div style={{ position:"absolute", bottom:44, right:10,
+                  width:30, height:30,
+                  background:"linear-gradient(135deg,#0f6e56,#1a8060)",
+                  borderRadius:6, display:"flex", alignItems:"center",
+                  justifyContent:"center", fontSize:15,
+                  animation:"stickerGlow 2.5s ease-in-out infinite" }}>
+                  🐰
+                </div>
+              )}
+            </div>
+            {/* Ground line */}
+            <div style={{ position:"absolute", bottom:0, left:0, right:0, height:3,
+              background:"rgba(0,0,0,.5)" }}/>
+          </div>
+          {/* Sidewalk */}
+          <div style={{ position:"absolute", bottom:0, left:0, right:0, height:"7%",
+            background:"#080e0a" }}/>
+          {/* Blurry pedestrian silhouettes */}
+          <div style={{ position:"absolute", bottom:"6%", left:"4%",
+            width:14, height:32, background:"rgba(255,255,255,.03)",
+            borderRadius:6, filter:"blur(2px)" }}/>
+          <div style={{ position:"absolute", bottom:"6%", right:"10%",
+            width:11, height:26, background:"rgba(255,255,255,.025)",
+            borderRadius:5, filter:"blur(2px)" }}/>
+        </div>
+      );
+    }
+
+    // ── AR overlay ──────────────────────────────────────────────────────
+    function AROverlay({ scenario, visible, phase }) {
+      const s = scenario;
+      if (!visible) return null;
+
+      return (
+        <div style={{ position:"absolute", inset:0, pointerEvents:"none" }}>
+
+          {/* AR grid */}
+          <div style={{ position:"absolute", inset:0,
+            backgroundImage:"linear-gradient(rgba(15,110,86,.025) 1px,transparent 1px), linear-gradient(90deg,rgba(15,110,86,.025) 1px,transparent 1px)",
+            backgroundSize:"22px 22px",
+            animation:"gridMove 6s linear infinite" }}/>
+
+          {/* Detection frame */}
+          {phase >= 1 && (
+            <div style={{ position:"absolute", top:"10%", left:"7%", right:"7%", height:"40%",
+              border:`1.5px solid ${s.accentColor}`,
+              borderRadius:6,
+              animation:"pulse 2s ease-in-out infinite" }}>
+              {/* Corner decorations */}
+              {[
+                {top:-5,left:-5,bt:"top",bl:"left"},
+                {top:-5,right:-5,bt:"top",bl:"right"},
+                {bottom:-5,left:-5,bt:"bottom",bl:"left"},
+                {bottom:-5,right:-5,bt:"bottom",bl:"right"},
+              ].map((pos,i)=>(
+                <div key={i} style={{
+                  position:"absolute", ...pos,
+                  width:12, height:12,
+                  borderTop: (pos.bt==="top") ? `2.5px solid ${s.accentColor}` : "none",
+                  borderBottom: (pos.bt==="bottom") ? `2.5px solid ${s.accentColor}` : "none",
+                  borderLeft: (pos.bl==="left") ? `2.5px solid ${s.accentColor}` : "none",
+                  borderRight: (pos.bl==="right") ? `2.5px solid ${s.accentColor}` : "none",
+                  animation:"cornerBlink 1.5s ease-in-out infinite",
+                }}/>
+              ))}
+              {/* Store label chip */}
+              <div style={{ position:"absolute", top:-26, left:0,
+                background:`${s.accentColor}ee`, borderRadius:"4px 4px 0 0",
+                padding:"3px 10px", color:"white", fontSize:10, fontWeight:600,
+                display:"flex", alignItems:"center", gap:6 }}>
+                <span style={{ width:7, height:7, borderRadius:"50%",
+                  background: s.hasSticker ? "#4ade9a" : "#ffaa20",
+                  display:"inline-block",
+                  boxShadow:`0 0 5px ${s.hasSticker?"#4ade9a":"#ffaa20"}` }}/>
+                {s.storeName}
+                {s.hasSticker &&
+                  <span style={{fontSize:9,opacity:.8}}>· Adherido</span>}
+              </div>
+              {/* Sticker badge inside frame */}
+              {s.hasSticker && (
+                <div style={{ position:"absolute", bottom:6, right:8,
+                  background:"rgba(15,110,86,.25)", border:"1px solid rgba(15,110,86,.5)",
+                  borderRadius:5, padding:"2px 7px",
+                  color:"#7de8a8", fontSize:8.5, fontWeight:600 }}>
+                  🐰 calcomanía detectada
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Tapití + speech bubble */}
+          {phase >= 2 && (
+            <div style={{ position:"absolute", bottom:168, left:10, right:10,
+              display:"flex", alignItems:"flex-end", gap:8,
+              animation:"slideUp .45s cubic-bezier(0.34,1.2,0.64,1)" }}>
+              <TapitiRabbit mood={s.mood} visible={true} size={68}/>
+              <div style={{ flex:1,
+                background:"rgba(4,16,9,.88)",
+                backdropFilter:"blur(8px)",
+                border:`1.5px solid ${s.accentColor}55`,
+                borderRadius:"10px 10px 10px 3px",
+                padding:"9px 11px", position:"relative" }}>
+                <div style={{ color:"#c5e0d0", fontSize:11.5, lineHeight:1.55,
+                  whiteSpace:"pre-line" }}>
+                  {s.tapitMsg}
+                </div>
+                {/* Bubble tail */}
+                <div style={{ position:"absolute", bottom:10, left:-8, width:0, height:0,
+                  borderTop:"7px solid transparent",
+                  borderBottom:"7px solid transparent",
+                  borderRight:`8px solid ${s.accentColor}55` }}/>
+              </div>
+            </div>
+          )}
+
+          {/* Promo info card (top right) */}
+          {phase >= 3 && s.discount && (
+            <div style={{ position:"absolute", top:"11%", right:"9%",
+              background:"rgba(4,16,9,.9)",
+              backdropFilter:"blur(8px)",
+              border:`1.5px solid ${s.accentColor}`,
+              borderRadius:10, padding:"10px 13px", minWidth:115,
+              animation:"slideLeft .4s cubic-bezier(0.34,1.2,0.64,1)" }}>
+              <div style={{ color:s.accentColor, fontSize:30, fontWeight:700, lineHeight:1 }}>
+                {s.discount}
+              </div>
+              <div style={{ color:"#7ab898", fontSize:9, marginTop:1 }}>reintegro</div>
+              <div style={{ marginTop:6, borderTop:"1px solid rgba(255,255,255,.08)", paddingTop:5 }}>
+                <div style={{ color:"#6a9a82", fontSize:9, lineHeight:1.5 }}>
+                  {s.cuotas} cuotas sin intereses<br/>
+                  Tope {s.tope}<br/>
+                  <span style={{ color:"#4ade9a", fontWeight:700 }}>= {s.reintegro}</span>
+                </div>
+              </div>
+              <div style={{ color:s.accentColor, fontSize:8.5, marginTop:4, opacity:.65 }}>
+                {s.card}
+              </div>
+            </div>
+          )}
+
+          {/* Redirect card (top right, no discount) */}
+          {phase >= 3 && !s.discount && s.redirect && (
+            <div style={{ position:"absolute", top:"11%", right:"9%",
+              background:"rgba(4,16,9,.9)",
+              backdropFilter:"blur(8px)",
+              border:`1.5px solid ${s.accentColor}`,
+              borderRadius:10, padding:"10px 13px", minWidth:125,
+              animation:"slideLeft .4s cubic-bezier(0.34,1.2,0.64,1)" }}>
+              <div style={{ color:"#ffaa20", fontSize:8.5, fontWeight:600, marginBottom:4 }}>
+                Mejor opción cerca
+              </div>
+              <div style={{ color:"white", fontSize:11, fontWeight:600, lineHeight:1.3 }}>
+                {s.redirect}
+              </div>
+              <div style={{ color:s.accentColor, fontSize:10.5, marginTop:2, fontWeight:600 }}>
+                {s.redirectDiscount}
+              </div>
+              <div style={{ color:"#5a8a72", fontSize:9, marginTop:1 }}>
+                {s.redirectDist} · a pie
+              </div>
+              <div style={{ marginTop:8, background:s.accentColor, borderRadius:6,
+                padding:"4px 8px", textAlign:"center",
+                color:"white", fontSize:9, fontWeight:600 }}>
+                Llevarme ahí 🗺️
+              </div>
+            </div>
+          )}
+
+          {/* Bottom action bar */}
+          {phase >= 3 && (
+            <div style={{ position:"absolute", bottom:12, left:10, right:10,
+              background:"rgba(4,16,9,.88)",
+              backdropFilter:"blur(8px)",
+              border:"1px solid rgba(255,255,255,.08)",
+              borderRadius:12, padding:"8px 11px",
+              display:"flex", gap:6,
+              animation:"slideUp .4s ease" }}>
+              {s.discount ? <>
+                <button style={{ flex:1, background:s.accentColor, border:"none",
+                  borderRadius:8, padding:"7px 0", color:"white",
+                  fontSize:10.5, fontWeight:600, cursor:"pointer" }}>
+                  ¿Cuánto me devuelven?
+                </button>
+                <button style={{ flex:1, background:"rgba(255,255,255,.06)",
+                  border:"1px solid rgba(255,255,255,.12)", borderRadius:8,
+                  padding:"7px 0", color:"#b8d8c8", fontSize:10.5, cursor:"pointer" }}>
+                  Ver ruta 🗺️
+                </button>
+              </> : <>
+                <button style={{ flex:1, background:s.accentColor, border:"none",
+                  borderRadius:8, padding:"7px 0", color:"white",
+                  fontSize:10.5, fontWeight:600, cursor:"pointer" }}>
+                  Ir a {s.redirect ? s.redirect.split(" ")[0] : "alternativa"} →
+                </button>
+                <button style={{ flex:1, background:"rgba(255,255,255,.05)",
+                  border:"1px solid rgba(255,255,255,.1)", borderRadius:8,
+                  padding:"7px 0", color:"#7ab898", fontSize:10.5, cursor:"pointer" }}>
+                  Más opciones
+                </button>
+              </>}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // ── Main app ────────────────────────────────────────────────────────
+    function App() {
+      const [scenIdx, setScenIdx] = useState(0);
+      const [scanning, setScanning] = useState(false);
+      const [phase, setPhase]     = useState(0);
+      const timers = useRef([]);
+
+      const scenario = SCENARIOS[scenIdx];
+
+      const clearTimers = () => {
+        timers.current.forEach(clearTimeout);
+        timers.current = [];
+      };
+
+      const startScan = () => {
+        if (scanning) return;
+        setScanning(true);
+        setPhase(0);
+        clearTimers();
+        const t1 = setTimeout(() => setPhase(1), 500);
+        const t2 = setTimeout(() => setPhase(2), 1300);
+        const t3 = setTimeout(() => setPhase(3), 2100);
+        timers.current = [t1, t2, t3];
+      };
+
+      const changeScen = (idx) => {
+        clearTimers();
+        setScenIdx(idx);
+        setScanning(false);
+        setPhase(0);
+      };
+
+      const infoTexts = {
+        promo:    "La calcomanía de Familiar en la vidriera activa Tapití. GPS + visión confirman la promo activa según tu tarjeta.",
+        nopromo:  "El local no está adherido hoy. Tapití aparece igual, informa, y sugiere el comercio más cercano con descuento activo.",
+        redirect: "Sin calcomanía ni adhesión. Tapití redirige al comercio adherido más cercano de la misma categoría.",
+      };
+
+      return (
+        <div style={{ background:"#060e08", minHeight:"100vh",
+          display:"flex", flexDirection:"column", alignItems:"center",
+          padding:"16px 12px 24px" }}>
+
+          {/* Header */}
+          <div style={{ width:"100%", maxWidth:340, marginBottom:14,
+            display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+            <div>
+              <div style={{ color:"#d0eada", fontSize:14, fontWeight:700 }}>Tapití AR</div>
+              <div style={{ color:"#1a5a2a", fontSize:10 }}>Referencia de experiencia · Etapa 1</div>
+            </div>
+            <div style={{ background:"rgba(15,110,86,.12)",
+              border:"1px solid rgba(15,110,86,.25)", borderRadius:12,
+              padding:"3px 10px", color:"#2ada72", fontSize:9, fontWeight:700,
+              letterSpacing:".05em" }}>
+              CONCEPTO
+            </div>
+          </div>
+
+          {/* Phone mockup */}
+          <div style={{ width:296, position:"relative",
+            background:"#0e0e0e", borderRadius:38,
+            padding:"10px 6px 14px",
+            boxShadow:"0 0 0 1.5px rgba(255,255,255,.07), 0 28px 70px rgba(0,0,0,.85)" }}>
+
+            {/* Notch */}
+            <div style={{ width:76, height:20, background:"#0e0e0e",
+              borderRadius:"0 0 12px 12px",
+              position:"absolute", top:10, left:"50%", transform:"translateX(-50%)",
+              zIndex:10, display:"flex", alignItems:"center", justifyContent:"center", gap:5 }}>
+              <div style={{ width:7, height:7, borderRadius:"50%", background:"#181818" }}/>
+              <div style={{ width:34, height:4, borderRadius:2, background:"#181818" }}/>
+            </div>
+
+            {/* Viewport */}
+            <div style={{ borderRadius:30, overflow:"hidden", height:556,
+              position:"relative", background:"#0a120c" }}>
+
+              <StoreFacade scenario={scenario}/>
+              <AROverlay scenario={scenario} visible={scanning} phase={phase}/>
+
+              {/* Scan animation line */}
+              {scanning && phase === 1 && (
+                <div style={{ position:"absolute", left:0, right:0, height:2,
+                  background:`linear-gradient(90deg,transparent,${scenario.accentColor},transparent)`,
+                  boxShadow:`0 0 8px ${scenario.accentColor}`,
+                  animation:"scanLine .8s ease-in-out forwards" }}/>
+              )}
+
+              {/* Status bar */}
+              <div style={{ position:"absolute", top:0, left:0, right:0,
+                padding:"28px 14px 10px",
+                background:"linear-gradient(180deg,rgba(0,0,0,.65) 0%,transparent 100%)",
+                display:"flex", alignItems:"center", justifyContent:"space-between",
+                pointerEvents:"none" }}>
+                <div style={{ display:"flex", alignItems:"center", gap:5 }}>
+                  <div style={{ width:7, height:7, borderRadius:"50%",
+                    background: scanning ? "#4ade9a" : "#3a5a48",
+                    boxShadow: scanning ? "0 0 6px #4ade9a" : "none" }}/>
+                  <span style={{ color:"rgba(255,255,255,.6)", fontSize:9.5 }}>
+                    {scanning ? "AR activo" : "Apuntá y tocá"}
+                  </span>
+                </div>
+                <div style={{ background:"rgba(0,0,0,.45)",
+                  border:"1px solid rgba(255,255,255,.09)",
+                  borderRadius:10, padding:"2px 8px",
+                  color:"rgba(255,255,255,.55)", fontSize:9.5,
+                  display:"flex", alignItems:"center", gap:4 }}>
+                  🐰 <span>Tapití AR</span>
+                </div>
+              </div>
+
+              {/* Idle prompt */}
+              {!scanning && (
+                <div style={{ position:"absolute", inset:0,
+                  display:"flex", flexDirection:"column",
+                  alignItems:"center", justifyContent:"center", gap:10 }}>
+                  <div style={{ width:56, height:56,
+                    border:"1.5px solid rgba(255,255,255,.18)",
+                    borderRadius:12, display:"flex",
+                    alignItems:"center", justifyContent:"center",
+                    fontSize:22, background:"rgba(0,0,0,.3)" }}>
+                    📷
+                  </div>
+                  <div style={{ color:"rgba(255,255,255,.4)", fontSize:11,
+                    textAlign:"center", lineHeight:1.4 }}>
+                    Apuntá al comercio<br/>y tocá para escanear
+                  </div>
+                </div>
+              )}
+
+              {/* Tap zone */}
+              <button onClick={startScan}
+                style={{ position:"absolute", inset:0,
+                  background:"transparent", border:"none", cursor:"pointer" }}/>
+            </div>
+
+            {/* Home bar */}
+            <div style={{ height:4, width:76, background:"rgba(255,255,255,.14)",
+              borderRadius:2, margin:"8px auto 0" }}/>
+          </div>
+
+          {/* Scenario tabs */}
+          <div style={{ width:"100%", maxWidth:340, marginTop:14, display:"flex", gap:6 }}>
+            {SCENARIOS.map((s, i) => (
+              <button key={s.id} onClick={() => changeScen(i)}
+                style={{ flex:1,
+                  background: scenIdx===i ? `${s.accentColor}20` : "rgba(255,255,255,.025)",
+                  border:`1px solid ${scenIdx===i ? s.accentColor+"55" : "rgba(255,255,255,.06)"}`,
+                  borderRadius:10, padding:"7px 5px", cursor:"pointer",
+                  transition:"all .18s" }}>
+                <div style={{ fontSize:15 }}>{s.icon}</div>
+                <div style={{ color: scenIdx===i ? "#c8e8d0" : "#3a5a42",
+                  fontSize:9.5, marginTop:3, fontWeight: scenIdx===i ? 600 : 400,
+                  lineHeight:1.3 }}>
+                  {s.label}
+                </div>
+              </button>
+            ))}
+          </div>
+
+          {/* Info card */}
+          <div style={{ width:"100%", maxWidth:340, marginTop:10,
+            background:"rgba(255,255,255,.018)",
+            border:"1px solid rgba(255,255,255,.05)",
+            borderRadius:10, padding:"9px 12px" }}>
+            <div style={{ color:"#0e4a22", fontSize:8.5, fontWeight:700,
+              letterSpacing:".08em", textTransform:"uppercase", marginBottom:4 }}>
+              Cómo funciona este escenario
+            </div>
+            <div style={{ color:"#2a5a3a", fontSize:10.5, lineHeight:1.55 }}>
+              {infoTexts[scenario.id]}
+            </div>
+            <div style={{ marginTop:7, display:"flex", gap:4, flexWrap:"wrap" }}>
+              <span style={{ background:"rgba(15,110,86,.12)",
+                border:"1px solid rgba(15,110,86,.25)", borderRadius:6,
+                padding:"2px 7px", color:"#1ada62", fontSize:8.5 }}>
+                Etapa 1 · GPS
+              </span>
+              <span style={{ background:"rgba(255,255,255,.035)",
+                border:"1px solid rgba(255,255,255,.07)", borderRadius:6,
+                padding:"2px 7px", color:"#3a5a48", fontSize:8.5 }}>
+                ARKit / ARCore
+              </span>
+              <span style={{ background:"rgba(255,255,255,.035)",
+                border:"1px solid rgba(255,255,255,.07)", borderRadius:6,
+                padding:"2px 7px", color:"#3a5a48", fontSize:8.5 }}>
+                API promos Bancard
+              </span>
+            </div>
+          </div>
+
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>

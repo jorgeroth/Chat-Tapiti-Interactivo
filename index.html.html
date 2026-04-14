@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ha upéi, Tapití</title>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    body { margin: 0; background: #071210; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
+
+    const USER={name:"Jorge",card:"Visa Oro",cardLast:"4521",minPayment:"Gs. 320.000",dueDate:"18 de abril",balance:"Gs. 1.850.000",location:"Av. Eusebio Ayala, Asunción"};
+    const TODAY=new Date();
+    const DAYS=["domingo","lunes","martes","miércoles","jueves","viernes","sábado"];
+    const TNAME=DAYS[TODAY.getDay()];
+    const LUNES=TODAY.getDay()===1;
+
+    const F={
+      comb:[
+        {m:"t",d:700,t:`¡Hola, Jorge! 👋 Te ubico cerca de **Av. Eusebio Ayala**.\n\n${LUNES?`Hoy lunes tenés reintegro con tu **Visa Oro**:\n\n🟢 **Copetrol** — 20% reintegro · hasta Gs. 60.000 · 1.2 km\n🟡 **Puma** — 15% reintegro · hasta Gs. 45.000 · 2.4 km\n\n¿Te guío hasta Copetrol? Es la mejor opción hoy 👇`:`Hoy **${TNAME}** no hay promo activa en combustible con tu Visa Oro.\n\nPero puedo ayudarte a encontrar una estación igual 👇`}`},
+        {m:"o",o:LUNES?[{l:"Sí, llevame a Copetrol 🗺️",n:"nav"},{l:"Quiero uno cerca de otro lugar",n:"otro"},{l:"Avisame el próximo lunes 🔔",n:"alarm"}]:[{l:"Buscar estación cercana 📍",n:"list"},{l:"Avisame el próximo lunes 🔔",n:"alarm"},{l:"Ver mis finanzas 💳",n:"fin"}]},
+      ],
+      nav:[
+        {m:"t",d:400,t:"Perfecto 🗺️ **Copetrol — Av. Eusebio Ayala 1150**, a 1.2 km.\n\n_Girá a la derecha en Av. Aviadores del Chaco, seguí 800m._\n\nCon tu **Visa Oro**: 20% de reintegro. ¿Cuánto pensás cargar?"},
+        {m:"o",o:[{l:"¿Cuánto me devuelven si cargo Gs. 200.000?",n:"calc"},{l:"Perfecto, gracias Tapití 🐰",n:"end"}]},
+      ],
+      calc:[
+        {m:"t",d:500,t:"Con 20% sobre **Gs. 200.000** → te devuelven **Gs. 40.000** al extracto ✅\n\nEl tope máximo es **Gs. 60.000** (cargando Gs. 300.000 o más).\n\n¿Querés que te avise cuando se acredite?"},
+        {m:"o",o:[{l:"Sí, avisame 🔔",n:"notif"},{l:"No hace falta",n:"end"}]},
+      ],
+      notif:[{m:"t",d:300,t:"✅ Notificación configurada. Te aviso cuando el reintegro llegue a tu extracto.\n\n¡Buen viaje, Jorge! 🐰"}],
+      otro:[
+        {m:"t",d:300,t:"Claro. ¿En qué zona querés buscar? Decime un barrio o referencia."},
+        {m:"i",p:"Ej: cerca del Shopping del Sol...",n:"otro2"},
+      ],
+      otro2:[
+        {m:"t",d:700,t:`Encontré estas estaciones${LUNES?" con promo activa":""} cerca de esa zona:\n\n📍 **Copetrol** — Shopping del Sol · 0.8 km${LUNES?" · **20% reintegro**":""}\n📍 **Puma** — Villa Morra · 1.5 km${LUNES?" · **15% reintegro**":""}\n\n¿Te guío a alguna?`},
+        {m:"o",o:[{l:"Sí, a la más cercana 🗺️",n:"nav"},{l:"No, gracias",n:"end"}]},
+      ],
+      alarm:[
+        {m:"t",d:400,t:"¡Buena idea! ¿A qué hora te aviso el **próximo lunes** con las mejores promos de combustible? 🕐"},
+        {m:"o",o:[{l:"7:00 hs (antes del trabajo)",n:"alarm2"},{l:"12:00 hs (mediodía)",n:"alarm2"},{l:"No hace falta",n:"end"}]},
+      ],
+      alarm2:[{m:"t",d:300,t:"✅ Recordatorio creado para el **próximo lunes**.\n\nTe mando las mejores promos activas ese día con tu Visa Oro. ¡Listo, Jorge! 🐰"}],
+      list:[
+        {m:"t",d:400,t:"Estaciones más cercanas a vos ahora:\n\n📍 **Copetrol** — Av. Eusebio Ayala 1150 · 1.2 km\n📍 **Puma** — Av. Mariscal López 2300 · 2.4 km\n📍 **Petrobras** — Aviadores esq. López · 3.1 km\n\n¿Te guío a alguna?"},
+        {m:"o",o:[{l:"Sí, a la más cercana 🗺️",n:"nav"},{l:"Avisame el lunes con promos 🔔",n:"alarm"},{l:"No, gracias",n:"end"}]},
+      ],
+      fin:[
+        {m:"t",d:500,t:`Con tu cuenta, Jorge:\n\n💳 **Visa Oro ···${USER.cardLast}** · Pago mínimo **${USER.minPayment}** · vence **${USER.dueDate}**\n📊 Disponible: **${USER.balance}**\n💰 Reintegros este mes: **Gs. 312.000**\n\n¿Qué querés hacer?`},
+        {m:"o",o:[{l:"Ver mis gastos esta semana 📊",n:"gastos"},{l:"Recordarme el pago 🔔",n:"venc"},{l:"Armar presupuesto",n:"pres"}]},
+      ],
+      gastos:[
+        {m:"t",d:600,t:"Esta semana gastaste **Gs. 850.000** con tu Visa Oro:\n\n🛒 Supermercado — Gs. 320.000 (martes)\n⛽ Copetrol — Gs. 180.000 (lunes · +Gs. 36.000 reintegro)\n🍽️ Gastronomía — Gs. 210.000 (miércoles)\n💊 Farmacia — Gs. 140.000 (jueves)\n\n¿Querés registrar algo o armar un presupuesto?"},
+        {m:"o",o:[{l:"Armar presupuesto semanal",n:"pres"},{l:"Registrar un gasto",n:"reg"},{l:"Está bien, gracias",n:"end"}]},
+      ],
+      reg:[
+        {m:"t",d:300,t:'Decime el monto, el rubro y dónde fue. Ejemplo: "Gs. 85.000 en farmacia".'},
+        {m:"i",p:"Ej: Gs. 85.000 en Punto Farma",n:"reg2"},
+      ],
+      reg2:[
+        {m:"t",d:500,t:`✅ Gasto registrado · hoy ${TNAME}.\n\nTotal actualizado esta semana: **Gs. 935.000**. ¿Definimos un límite semanal?`},
+        {m:"o",o:[{l:"Sí, límite Gs. 800.000",n:"lim"},{l:"No, gracias",n:"end"}]},
+      ],
+      pres:[
+        {m:"t",d:500,t:"Tu gasto promedio semanal (últimos 3 meses): **Gs. 920.000**.\n\n1. 🛒 Supermercados — 38%\n2. ⛽ Combustible — 21%\n3. 🍽️ Gastronomía — 18%\n4. 💊 Farmacia — 15%\n\n¿Definimos un límite semanal y te aviso si lo superás?"},
+        {m:"o",o:[{l:"Sí, Gs. 800.000 por semana 📉",n:"lim"},{l:"No por ahora",n:"end"}]},
+      ],
+      lim:[{m:"t",d:300,t:"✅ Límite semanal configurado en **Gs. 800.000**.\n\nTe aviso al 80% (Gs. 640.000) y si lo superás. Así podés ajustar a tiempo. 🐰"}],
+      venc:[{m:"t",d:300,t:"✅ Recordatorio creado para el **15 de abril a las 9:00 hs** (3 días antes del vencimiento).\n\nTe aviso con el monto exacto disponible ese día. 🐰"}],
+      end:[{m:"t",d:200,t:"¡De nada, Jorge! Cuando necesités algo, solo decí **Ha upéi, Tapití** y aparezco. 🐰"}],
+      nologin:[
+        {m:"t",d:500,t:"¡Hola! Soy **Tapití**, tu asistente de Banco Familiar 🐰\n\nSin iniciar sesión puedo mostrarte promos del día, descuentos y ubicarte comercios.\n\nPara datos personales (saldo, vencimiento, reintegros exactos) → iniciá sesión.\n\n¿En qué te ayudo?"},
+        {m:"o",o:[{l:"¿Hay promos de combustible hoy?",n:"nl_comb"},{l:"Descuentos en supermercados",n:"nl_super"},{l:"Iniciar sesión",n:"nl_login"}]},
+      ],
+      nl_comb:[
+        {m:"t",d:400,t:LUNES?`Hoy lunes hay promos activas en combustible:\n\n🟢 **Copetrol** — hasta 20% con tarjetas Familiar\n🟡 **Puma** — hasta 15% con tarjetas Familiar\n\nPara ver el reintegro exacto según _tu_ tarjeta, iniciá sesión 👇`:`Hoy ${TNAME} no hay promo en combustible.\n\nLas promos de combustible son los **lunes** 🗓️`},
+        {m:"o",o:[{l:"Iniciar sesión para ver mi descuento",n:"nl_login"},{l:"Buscar estación cercana",n:"nl_map"},{l:"Volver",n:"nologin"}]},
+      ],
+      nl_map:[{m:"t",d:300,t:"📍 Estaciones cercanas (ubicación aproximada):\n\n• Copetrol — Av. Eusebio Ayala · ~1.2 km\n• Puma — Av. Mariscal López · ~2.4 km\n• Petrobras — Aviadores · ~3.1 km\n\n_Para ver reintegros según tu tarjeta, iniciá sesión._"}],
+      nl_super:[{m:"t",d:400,t:"Promos activas en supermercados esta semana:\n\n🛒 **Stock** — 15% reintegro con TC Familiar (hasta viernes)\n🛒 **Superseis** — 12 cuotas sin intereses todos los días\n🛒 **Biggie** — 10% reintegro con Visa Oro y Platinum\n\n_Para el descuento exacto según tu tarjeta, iniciá sesión._"}],
+      nl_login:[{m:"t",d:300,t:"📲 Abriendo pantalla de login...\n\n_En producción: lleva al login de Banco Familiar y regresa al chat con tu contexto guardado._"}],
+    };
+
+    const RT=t=>t.split(/(\*\*[^*]+\*\*|_[^_]+_|\n)/g).map((p,i)=>{
+      if(p.startsWith("**")&&p.endsWith("**")) return <b key={i} style={{color:"#6ee89e"}}>{p.slice(2,-2)}</b>;
+      if(p.startsWith("_")&&p.endsWith("_")) return <span key={i} style={{color:"#3d6650",fontSize:"0.9em"}}>{p.slice(1,-1)}</span>;
+      if(p==="\n") return <br key={i}/>;
+      return p;
+    });
+
+    function App(){
+      const [login,setLogin]=useState(false);
+      const [msgs,setMsgs]=useState([]);
+      const [typing,setTyping]=useState(false);
+      const [on,setOn]=useState(false);
+      const [inp,setInp]=useState("");
+      const [pend,setPend]=useState(null);
+      const running=useRef(false);
+      const bot=useRef(null);
+      useEffect(()=>{bot.current?.scrollIntoView({behavior:"smooth"})},[msgs,typing]);
+      const add=m=>setMsgs(p=>[...p,{...m,k:Date.now()+Math.random()}]);
+      const run=async n=>{
+        if(running.current)return;
+        const fl=F[n];if(!fl)return;
+        running.current=true;
+        for(const s of fl){
+          if(s.m==="t"){
+            setTyping(true);
+            await new Promise(r=>setTimeout(r,(s.d||400)+Math.min(1600,s.t.replace(/[*_]/g,"").length*13)));
+            setTyping(false);add({type:"t",text:s.t});
+          }else if(s.m==="o"){add({type:"o",opts:s.o});running.current=false;return;}
+          else if(s.m==="i"){setPend(s.n);add({type:"i",ph:s.p});running.current=false;return;}
+        }
+        running.current=false;
+      };
+      const pick=o=>{setMsgs(p=>p.filter(x=>x.type!=="o"));add({type:"u",text:o.l});running.current=false;setTimeout(()=>run(o.n),180);};
+      const send=()=>{
+        if(!inp.trim()||!pend)return;
+        setMsgs(p=>p.filter(x=>x.type!=="i"));add({type:"u",text:inp});
+        const n=pend;setInp("");setPend(null);running.current=false;setTimeout(()=>run(n),180);
+      };
+      const boot=s=>{
+        setMsgs([]);setOn(true);running.current=false;
+        if(s==="voz"){setTimeout(()=>{add({type:"v"});setTimeout(()=>run(login?"comb":"nl_comb"),800);},300);}
+        else if(s==="comb")run(login?"comb":"nl_comb");
+        else if(s==="fin")run(login?"fin":"nologin");
+        else run("nologin");
+      };
+      const rst=()=>{setMsgs([]);setOn(false);running.current=false;setPend(null);};
+
+      return(
+        <div style={{background:"#071210",minHeight:"100vh",fontFamily:"system-ui,sans-serif",display:"flex",flexDirection:"column",maxWidth:430,margin:"0 auto"}}>
+          <style>{`@keyframes bl{0%,80%,100%{transform:scale(.6);opacity:.25}40%{transform:scale(1);opacity:1}}.ob:hover{background:rgba(12,80,45,.5)!important;color:#fff!important}input{outline:none}`}</style>
+          <div style={{padding:"10px 12px",display:"flex",alignItems:"center",justifyContent:"space-between",borderBottom:"1px solid rgba(255,255,255,.05)"}}>
+            <div style={{display:"flex",alignItems:"center",gap:8}}>
+              <div style={{width:30,height:30,borderRadius:"50%",background:"linear-gradient(135deg,#142e1e,#0c5035)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,border:"1.5px solid rgba(12,80,50,.5)"}}>🐰</div>
+              <div><div style={{color:"#d8eee2",fontSize:13,fontWeight:600,lineHeight:1}}>Ha upéi, Tapití</div><div style={{color:"#1e5a32",fontSize:9,marginTop:2}}>Asistente · Banco Familiar</div></div>
+            </div>
+            <div style={{display:"flex",gap:5,alignItems:"center"}}>
+              <button onClick={()=>{setLogin(v=>!v);rst();}} style={{background:login?"rgba(12,80,45,.25)":"rgba(255,255,255,.035)",border:`1px solid ${login?"rgba(12,80,45,.6)":"rgba(255,255,255,.08)"}`,borderRadius:13,padding:"3px 8px",color:login?"#28c868":"#4a6a58",fontSize:9,cursor:"pointer",fontWeight:500}}>
+                {login?"● Jorge · Visa Oro":"○ Sin sesión"}
+              </button>
+              {on&&<button onClick={rst} style={{background:"transparent",border:"none",color:"#1e3a28",fontSize:13,cursor:"pointer"}}>↺</button>}
+            </div>
+          </div>
+          <div style={{padding:"3px 12px",background:LUNES?"rgba(4,35,16,.7)":"rgba(70,40,0,.35)",borderBottom:"1px solid rgba(255,255,255,.03)"}}>
+            <span style={{fontSize:9,color:LUNES?"#20b858":"#a06800"}}>{LUNES?"🟢 Lunes · Promos combustible activas":"🟡 "+TNAME.charAt(0).toUpperCase()+TNAME.slice(1)+" · Sin promo combustible hoy"}</span>
+          </div>
+          <div style={{flex:1,display:"flex",flexDirection:"column"}}>
+            {!on&&(
+              <div style={{padding:"12px"}}>
+                <div style={{color:"#0e4a26",fontSize:9,fontWeight:700,letterSpacing:".09em",textTransform:"uppercase",marginBottom:7}}>Elegí un escenario</div>
+                {[{k:"voz",l:'🎙️ "Ha upéi, Tapití" — activación por voz',s:"Como si estuvieras manejando"},{k:"comb",l:"⛽ Promos de combustible",s:login?"Identifica Visa Oro + ubicación":"Sin sesión — info general"},{k:"fin",l:"💳 Mis finanzas y tarjeta",s:login?"Gastos, vencimiento, presupuesto":"Requiere iniciar sesión"},{k:"nologin",l:"👁️ Modo sin sesión",s:"Qué puede hacer Tapití sin login"}].map(s=>(
+                  <button key={s.k} onClick={()=>boot(s.k)} style={{width:"100%",background:"rgba(255,255,255,.02)",border:"1px solid rgba(255,255,255,.05)",borderRadius:8,padding:"9px 11px",marginBottom:5,cursor:"pointer",textAlign:"left"}} onMouseEnter={e=>e.currentTarget.style.background="rgba(12,70,40,.18)"} onMouseLeave={e=>e.currentTarget.style.background="rgba(255,255,255,.02)"}>
+                    <div style={{color:"#c0dece",fontSize:12,fontWeight:500}}>{s.l}</div>
+                    <div style={{color:"#184828",fontSize:9.5,marginTop:1}}>{s.s}</div>
+                  </button>
+                ))}
+                <div style={{marginTop:9,padding:"7px 10px",borderRadius:6,background:"rgba(255,255,255,.018)",border:"1px solid rgba(255,255,255,.04)"}}>
+                  <div style={{color:"#0e4020",fontSize:8,fontWeight:700,letterSpacing:".07em",textTransform:"uppercase",marginBottom:2}}>Estado</div>
+                  <div style={{color:"#2a5a38",fontSize:10,lineHeight:1.4}}>{login?`Sesión activa: Jorge · Visa Oro ···4521 · ${USER.location}`:"Sin sesión — solo promos públicas y mapa general"}</div>
+                </div>
+              </div>
+            )}
+            {on&&(
+              <div style={{flex:1,overflowY:"auto",minHeight:420,padding:"10px 12px",display:"flex",flexDirection:"column",gap:7}}>
+                {msgs.map(m=>{
+                  if(m.type==="v") return <div key={m.k} style={{alignSelf:"center",background:"rgba(4,30,15,.7)",border:"1px solid rgba(12,70,40,.5)",borderRadius:14,padding:"5px 13px",color:"#20c060",fontSize:9.5,display:"flex",alignItems:"center",gap:5}}>🎙️ <b>Ha upéi, Tapití</b> — comando de voz activado</div>;
+                  if(m.type==="t") return(
+                    <div key={m.k} style={{display:"flex",gap:5,alignItems:"flex-start",maxWidth:"90%"}}>
+                      <div style={{width:20,height:20,borderRadius:"50%",background:"linear-gradient(135deg,#142e1e,#0c5035)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,flexShrink:0}}>🐰</div>
+                      <div style={{background:"rgba(255,255,255,.04)",border:"1px solid rgba(255,255,255,.065)",borderRadius:"2px 9px 9px 9px",padding:"7px 10px",color:"#b0cfc0",fontSize:11.5,lineHeight:1.55}}>{RT(m.text)}</div>
+                    </div>
+                  );
+                  if(m.type==="u") return <div key={m.k} style={{alignSelf:"flex-end",maxWidth:"74%",background:"linear-gradient(135deg,#0b4a36,#155a45)",borderRadius:"9px 2px 9px 9px",padding:"7px 10px",color:"#d5f5e5",fontSize:11.5,lineHeight:1.4}}>{m.text}</div>;
+                  if(m.type==="o") return(
+                    <div key={m.k} style={{display:"flex",flexWrap:"wrap",gap:4,paddingLeft:25}}>
+                      {m.opts.map((o,i)=>(
+                        <button key={i} className="ob" onClick={()=>pick(o)} style={{background:"rgba(12,70,40,.14)",border:"1px solid rgba(12,70,40,.4)",borderRadius:14,padding:"5px 11px",color:"#1ec060",fontSize:10.5,cursor:"pointer",fontWeight:500,transition:"all .1s"}}>{o.l}</button>
+                      ))}
+                    </div>
+                  );
+                  if(m.type==="i") return(
+                    <div key={m.k} style={{display:"flex",gap:5,paddingLeft:25}}>
+                      <input value={inp} onChange={e=>setInp(e.target.value)} onKeyDown={e=>e.key==="Enter"&&send()} placeholder={m.ph} style={{flex:1,background:"rgba(255,255,255,.038)",border:"1px solid rgba(12,70,40,.35)",borderRadius:14,padding:"5px 10px",color:"#b8d8c8",fontSize:10.5}}/>
+                      <button onClick={send} style={{background:"#0b4a36",border:"none",borderRadius:14,padding:"5px 11px",color:"#d5f5e5",fontSize:10.5,cursor:"pointer",fontWeight:500}}>→</button>
+                    </div>
+                  );
+                  return null;
+                })}
+                {typing&&(
+                  <div style={{display:"flex",gap:5,alignItems:"center"}}>
+                    <div style={{width:20,height:20,borderRadius:"50%",background:"linear-gradient(135deg,#142e1e,#0c5035)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10}}>🐰</div>
+                    <div style={{background:"rgba(255,255,255,.04)",border:"1px solid rgba(255,255,255,.065)",borderRadius:"2px 9px 9px 9px",padding:"7px 11px",display:"flex",gap:4,alignItems:"center"}}>
+                      {[0,1,2].map(i=><div key={i} style={{width:4,height:4,borderRadius:"50%",background:"#107840",animation:"bl 1.2s ease-in-out infinite",animationDelay:`${i*.2}s`}}/>) }
+                    </div>
+                  </div>
+                )}
+                <div ref={bot}/>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>
